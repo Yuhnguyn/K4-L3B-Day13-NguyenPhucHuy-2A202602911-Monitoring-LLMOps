@@ -3,12 +3,17 @@ from __future__ import annotations
 import hashlib
 import re
 
+# Thứ tự pattern quan trọng: các pattern số dài (phone, cccd, credit card) phải
+# chạy trước các pattern số ngắn để không bị cắt thành mảnh nhỏ.
 PII_PATTERNS: dict[str, str] = {
     "email": r"[\w\.-]+@[\w\.-]+\.\w+",
     "phone_vn": r"(?<!\d)(?:\+84|0)(?:[ .-]?\d){9}(?!\d)",
     "cccd": r"\b\d{12}\b",
     "credit_card": r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
-    # TODO: Add more patterns (e.g., Passport, Vietnamese address keywords)
+    # CMND 9 số (giấy tờ cũ, trước CCCD 12 số).
+    "cmnd": r"(?<!\d)\d{9}(?!\d)",
+    # Hộ chiếu phổ thông Việt Nam: 1 chữ cái + 7 chữ số, ví dụ B1234567.
+    "passport_vn": r"\b[A-Za-z]\d{7}\b",
 }
 
 
