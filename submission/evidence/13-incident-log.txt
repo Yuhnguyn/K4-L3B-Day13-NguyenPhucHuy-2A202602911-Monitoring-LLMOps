@@ -1,14 +1,18 @@
 13-incident-log — log line của request bất thường (challenge day13-k4-l3b-monitoring-llmops-v1)
-incident: rag_slow | feature: monitoring | ngưỡng: 2000ms | correlation_id: req-fde8d39e
+incident: rag_slow | feature: monitoring | ngưỡng challenge: 2000ms
+correlation_id: req-2abbd121 | trace tương ứng (ảnh 14): 8f4ed07f2549c65320789c235aac5cfa
 
-Ghi chú: khoá payload.message_preview / payload.answer_preview đã được bỏ khỏi bản in này
-để không đưa nội dung challenge vào repo (RULES mục 4). Các trường còn lại giữ nguyên,
-bao gồm sha256 của dòng log gốc để đối chiếu tính nguyên bản trên máy cá nhân.
+Bằng chứng đo được: latency_ms=2864, ttft_ms=166 -> độ trễ nằm TRƯỚC lời gọi LLM
+(ttft_ms chỉ đo bên trong generate, không đổi so với baseline ~53ms).
 
-Xem dòng gốc: grep req-fde8d39e data/logs.jsonl
+Ghi chú về bản in: hai khoá payload.message_preview/answer_preview và session_id
+đã được bỏ để không đưa nội dung challenge vào repo (RULES mục 4). Các trường còn lại
+giữ nguyên, kèm sha256 của dòng gốc để đối chiếu tính nguyên bản trên máy cá nhân.
 
-sha256(dòng gốc) = 56f6ba08abb4b4e7461fed93284399228c98e3a105815c4c7698580964ad9dff
-{"service": "api", "event": "request_received", "model": "claude-sonnet-4-5", "env": "dev", "user_id_hash": "68e37dc7cb5e", "correlation_id": "req-fde8d39e", "session_id": "k4-l3b-challenge-s05", "feature": "monitoring", "level": "info", "ts": "2026-09-30T04:45:10.487477Z"}
+Xem dòng gốc: grep req-2abbd121 data/logs.jsonl
 
-sha256(dòng gốc) = 99bed8b5fb4d19abf35efabe733550713ce1176d86a4586fa3ff9d235fd7d2bc
-{"service": "api", "latency_ms": 3162, "ttft_ms": 158, "tokens_in": 35, "tokens_out": 96, "cost_usd": 0.001545, "quality_score": 0.8, "tool_name": "retrieval", "tool_success": true, "event": "response_sent", "model": "claude-sonnet-4-5", "env": "dev", "user_id_hash": "68e37dc7cb5e", "correlation_id": "req-fde8d39e", "session_id": "k4-l3b-challenge-s05", "feature": "monitoring", "level": "info", "ts": "2026-09-30T04:45:13.662892Z"}
+sha256(dòng gốc) = a0f38dfc5bbc92c462119e65acb0885a2294acdc8433814f32abc21d33bfdeaf
+{"service": "api", "event": "request_received", "feature": "monitoring", "env": "dev", "user_id_hash": "2f2fc5ebba0b", "model": "claude-sonnet-4-5", "correlation_id": "req-2abbd121", "level": "info", "ts": "2026-09-30T05:26:38.982654Z"}
+
+sha256(dòng gốc) = 9290260ee77a8ed69d990bea94a72b0588bf5a1b70ffa3df553e9b7bc72789e9
+{"service": "api", "latency_ms": 2864, "ttft_ms": 166, "tokens_in": 34, "tokens_out": 162, "cost_usd": 0.002532, "quality_score": 0.9, "tool_name": "retrieval", "tool_success": true, "event": "response_sent", "feature": "monitoring", "env": "dev", "user_id_hash": "2f2fc5ebba0b", "model": "claude-sonnet-4-5", "correlation_id": "req-2abbd121", "level": "info", "ts": "2026-09-30T05:26:41.884978Z"}
