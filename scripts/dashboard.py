@@ -302,7 +302,15 @@ def panel(panel_id: str, title: str, question: str, unit: str, body: str, stats:
 # ------------------------------------------------------------------------ build
 
 
-def build_html(records: list[dict], log_path: Path) -> str:
+def display_path(path: Path) -> str:
+    """Đường dẫn gọn để hiển thị; log nằm ngoài repo vẫn phải render được."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def build_html(records: list[dict], log_path: Path, note: str = "") -> str:
     start, end, current = window_of(records)
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -511,6 +519,8 @@ def build_html(records: list[dict], log_path: Path) -> str:
         + stat("Số câu trả lời", str(len(quality_values))),
     )
 
+    note_html = f'<p class="note">{note}</p>' if note else ""
+
     return f"""<!doctype html>
 <html lang="vi">
 <head>
@@ -523,7 +533,9 @@ def build_html(records: list[dict], log_path: Path) -> str:
   body {{ margin: 0; padding: 20px 24px 32px; background: #f3f4f6; color: {COLORS["ink"]};
          font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
   h1 {{ font-size: 19px; margin: 0 0 4px; }}
-  .sub {{ color: {COLORS["muted"]}; font-size: 12px; margin: 0 0 18px; }}
+  .sub {{ color: {COLORS["muted"]}; font-size: 12px; margin: 0 0 6px; }}
+  .note {{ font-size: 12.5px; font-weight: 600; color: #7f1d1d; background: #fef2f2;
+           border: 1px solid #fecaca; border-radius: 7px; padding: 6px 10px; margin: 0 0 14px; }}
   .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }}
   .panel {{ background: #fff; border: 1px solid {COLORS["grid"]}; border-radius: 10px; padding: 12px 14px 8px; }}
   .panel h2 {{ font-size: 14px; margin: 0; }}
@@ -548,13 +560,14 @@ def build_html(records: list[dict], log_path: Path) -> str:
 <body>
   <h1>Day 13 — Monitoring &amp; LLMOps dashboard</h1>
   <p class="sub">
-    Nguồn dữ liệu: <code>{log_path.relative_to(REPO_ROOT) if log_path.is_absolute() else log_path}</code>
+    Nguồn dữ liệu: <code>{display_path(log_path)}</code>
     &nbsp;•&nbsp; Cửa sổ: {WINDOW_MINUTES} phút ({start.strftime("%H:%M")}–{end.strftime("%H:%M")} UTC, dữ liệu thực tế
     {len([v for v in traffic_points if v is not None])} phút)
     &nbsp;•&nbsp; Tự refresh mỗi {REFRESH_SECONDS}s
     &nbsp;•&nbsp; {len(current)} bản ghi trong cửa sổ
     &nbsp;•&nbsp; sinh lúc {generated}
   </p>
+  {note_html}
   <div class="grid">
     {latency_panel}
     {traffic_panel}
@@ -578,10 +591,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Dựng dashboard 6 panel từ data/logs.jsonl")
     parser.add_argument("--log", type=Path, default=DEFAULT_LOG)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--note", default="", help="Dòng chú thích ở đầu dashboard, ví dụ challenge ID")
     args = parser.parse_args()
 
     records = load_records(args.log)
-    html = build_html(records, args.log)
+    html = build_html(records, args.log, args.note)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(html, encoding="utf-8")
 
