@@ -1,0 +1,29 @@
+05 — PII redaction (input chứa PII GIẢ, log đã che)
+sinh lúc 2026-09-30 05:46:53 UTC (giờ UTC)
+
+Không dùng PII thật. Bốn request ngắn, mỗi request một loại PII, cùng đi qua
+POST /chat; log ghi ra đã được che và vẫn giữ correlation_id.
+
+INPUT (PII giả, gửi tới POST /chat):
+  [email giả] HTTP 200 — message: "email sinh.vien.gia@example.com cua toi"
+  [điện thoại VN giả] HTTP 200 — message: "so dien thoai 0987654321 cua toi"
+  [CCCD giả] HTTP 200 — message: "CCCD 001202012345 cua toi"
+  [thẻ thanh toán giả] HTTP 200 — message: "the thanh toan 4111 1111 1111 1111 cua toi"
+
+LOG ghi ra (đã che trước khi ghi file):
+$ grep req-piiev01 data/logs.jsonl
+$ grep req-piiev02 data/logs.jsonl
+$ grep req-piiev03 data/logs.jsonl
+$ grep req-piiev04 data/logs.jsonl
+{"service": "api", "payload": {"message_preview": "email [REDACTED_EMAIL] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev01", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:45:49.209887Z"}
+{"service": "api", "payload": {"message_preview": "email [REDACTED_EMAIL] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev01", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:22.607537Z"}
+{"service": "api", "payload": {"message_preview": "email [REDACTED_EMAIL] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev01", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:55.531743Z"}
+{"service": "api", "payload": {"message_preview": "so dien thoai [REDACTED_PHONE_VN] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev02", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:45:49.444417Z"}
+{"service": "api", "payload": {"message_preview": "so dien thoai [REDACTED_PHONE_VN] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev02", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:22.912766Z"}
+{"service": "api", "payload": {"message_preview": "so dien thoai [REDACTED_PHONE_VN] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev02", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:55.750380Z"}
+{"service": "api", "payload": {"message_preview": "CCCD [REDACTED_CCCD] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev03", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:45:49.694314Z"}
+{"service": "api", "payload": {"message_preview": "CCCD [REDACTED_CCCD] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev03", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:23.142863Z"}
+{"service": "api", "payload": {"message_preview": "CCCD [REDACTED_CCCD] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev03", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:55.963106Z"}
+{"service": "api", "payload": {"message_preview": "the thanh toan [REDACTED_CREDIT_CARD] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev04", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:45:49.939143Z"}
+{"service": "api", "payload": {"message_preview": "the thanh toan [REDACTED_CREDIT_CARD] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev04", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:23.361710Z"}
+{"service": "api", "payload": {"message_preview": "the thanh toan [REDACTED_CREDIT_CARD] cua toi"}, "event": "request_received", "user_id_hash": "78993b3ac9ca", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-piiev04", "session_id": "s_pii_evidence", "level": "info", "ts": "2026-09-30T05:46:56.281749Z"}

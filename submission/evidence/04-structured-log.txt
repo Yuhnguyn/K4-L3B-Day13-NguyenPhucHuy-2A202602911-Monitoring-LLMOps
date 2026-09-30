@@ -1,0 +1,7 @@
+04 — structured log (trích nguyên văn từ data/logs.jsonl)
+sinh lúc 2026-09-30 05:46:53 UTC (giờ UTC)
+
+Hai event của cùng một request, gồm đủ field bắt buộc và metadata enrichment.
+$ grep req-logevidence data/logs.jsonl
+{"service": "api", "payload": {"message_preview": "Explain how structured logs and correlation IDs work together"}, "event": "request_received", "user_id_hash": "dc9120ba36b3", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-logevidence", "session_id": "s_log_evidence", "level": "info", "ts": "2026-09-30T05:46:54.242496Z"}
+{"service": "api", "latency_ms": 181, "ttft_ms": 54, "tokens_in": 35, "tokens_out": 156, "cost_usd": 0.002445, "quality_score": 0.8, "tool_name": "retrieval", "tool_success": true, "payload": {"answer_preview": "Starter answer. You should improve this output logic and add better quality chec..."}, "event": "response_sent", "user_id_hash": "dc9120ba36b3", "model": "claude-sonnet-4-5", "env": "dev", "feature": "qa", "correlation_id": "req-logevidence", "session_id": "s_log_evidence", "level": "info", "ts": "2026-09-30T05:46:54.433018Z"}

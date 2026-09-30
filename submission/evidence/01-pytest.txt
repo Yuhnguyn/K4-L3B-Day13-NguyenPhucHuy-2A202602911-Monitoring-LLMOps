@@ -1,0 +1,5 @@
+01 — pytest trên commit cuối
+sinh lúc 2026-09-30 05:44:48 UTC (giờ UTC)
+$ python -m pytest -q
+...........................................                              [100%]
+43 passed in 7.64s
