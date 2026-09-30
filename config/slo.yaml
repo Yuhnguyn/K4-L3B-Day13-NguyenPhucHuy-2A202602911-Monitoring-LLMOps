@@ -1,4 +1,5 @@
 service: day13-l3b-monitoring-llmops-lab
+
 primary_slo:
   name: fast_successful_requests
   window: 28d
@@ -7,7 +8,56 @@ primary_slo:
     total_event: 'event == "request_received"'
   target_percent: 99.5
   error_budget_percent: 0.5
-  note: Học viên phải giải thích hoặc điều chỉnh ngưỡng bằng baseline của mình. Ví dụ nếu có 10,000 request trong cửa sổ 28 ngày, error budget 0.5% nghĩa là tối đa 50 request được phép không đạt SLO.
+
+  # Baseline đo thật trên máy cá nhân: 33 request rải trong 12 phút bằng
+  # scripts/load_test_spread.py, KHÔNG bật incident practice. Nguồn: data/logs.jsonl.
+  baseline_measured:
+    measured_on: '2026-09-30 (UTC)'
+    window_utc: '03:48:53 → 04:00:49'
+    workload: '33 request / 12 phút (~2,75 request/phút), concurrency 1'
+    request_received: 33
+    response_sent: 33
+    request_failed: 0
+    error_rate_pct: 0.0
+    latency_p50_ms: 167
+    latency_p95_ms: 444
+    latency_p99_ms: 662
+    latency_max_ms: 662
+    ttft_p95_ms: 152
+    quality_avg: 0.8848
+    cost_total_usd: 0.067923
+    cost_per_request_usd: 0.002058
+    retrieval_success_pct: 100.0
+
+  # Quy error budget ra số request để con số có ý nghĩa vận hành.
+  error_budget_requests:
+    per_10000_requests: 50
+    at_measured_lab_rate_28d: 554
+    calculation: >-
+      Nhịp đo được 33 request / 12 phút ≈ 2,75 request/phút. Cửa sổ 28 ngày có
+      28 × 1440 = 40.320 phút → 2,75 × 40.320 ≈ 110.880 request. Error budget 0,5%
+      → 110.880 × 0,005 ≈ 554 request được phép chậm hơn 3000 ms hoặc bị lỗi trong
+      28 ngày. Với 10.000 request thì ngân sách là 50 request.
+
+  guardrails_measured:
+    daily_cost_usd_max_equivalent_requests: 1215
+    note: >-
+      Guardrail daily_cost_usd_max = 2,5 USD. Với đơn giá đo được 0,002058 USD/request,
+      2,5 USD ≈ 1.215 request/ngày. Nhịp demo của lab (2,75 request/phút ≈ 3.960
+      request/ngày) vượt ngưỡng này nếu chạy liên tục cả ngày, nên guardrail cost chỉ
+      có nghĩa khi traffic thật thấp hơn nhiều so với lúc load test.
+
+  note: >-
+    Giữ target 99,5% / 28 ngày và ngưỡng latency_ms <= 3000 ms vì đây chính là đường
+    SLO đang vẽ trên panel latency của dashboard (config/dashboard.yaml). Baseline đo
+    được p95 = 444 ms và max = 662 ms, tức còn khoảng 6,8 lần headroom theo p95
+    (4,5 lần theo max) so với 3000 ms: SLO này đủ để bắt "hệ thống có còn sống không"
+    nhưng quá lỏng để bắt suy giảm nhẹ. Trong vận hành thật nên thêm một alert cảnh
+    báo sớm ở mức p95 > 800 ms (≈1,8 lần baseline); bài này chỉ giữ đúng 3 alert theo
+    yêu cầu đề nên chưa thêm. SLI cố ý lấy total_event là request_received: request
+    lỗi không sinh response_sent nên tự động bị tính là bad event, không cần thêm
+    điều kiện riêng cho lỗi.
+
 guardrails:
   error_rate_pct_max: 2
   daily_cost_usd_max: 2.5

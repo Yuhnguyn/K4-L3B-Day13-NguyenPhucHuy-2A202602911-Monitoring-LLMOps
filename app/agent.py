@@ -9,7 +9,19 @@ from .mock_llm import FakeLLM
 from .mock_rag import retrieve
 from .pii import hash_user_id, summarize_text
 from .prompt_management import resolve_prompt
-from .tracing import get_langfuse_client, observe, propagate_attributes, tracing_enabled
+from .tracing import (
+    child_observation,
+    get_langfuse_client,
+    observe,
+    propagate_attributes,
+    tracing_enabled,
+    update_observation,
+)
+
+# Đơn giá giả lập theo token (USD / 1 triệu token). Log, trace và dashboard
+# dùng chung nguồn này để con số cost không lệch nhau.
+INPUT_USD_PER_MTOKEN = 3.0
+OUTPUT_USD_PER_MTOKEN = 15.0
 
 
 @dataclass
@@ -51,7 +63,18 @@ class LabAgent:
             },
         ):
             started = time.perf_counter()
-            docs = retrieve(message)
+
+            # Bước 1 — retrieval: observation riêng để waterfall tách được thời gian
+            # tìm tài liệu. Chỉ ghi preview đã scrub, không ghi query thô.
+            with child_observation(
+                langfuse_client,
+                as_type="retriever",
+                name="retrieval",
+                input={"query_preview": summarize_text(message)},
+            ) as retrieval_observation:
+                docs = retrieve(message)
+                update_observation(retrieval_observation, output={"doc_count": len(docs)})
+
             prompt = resolve_prompt(
                 langfuse_client,
                 feature=feature,
@@ -71,13 +94,41 @@ class LabAgent:
                 },
                 version=prompt.version,
             )
-            # TODO (CP2): instrument retrieve() and FakeLLM.generate() as child
-            # observations. The nested generation must receive prompt, usage and cost.
-            with propagate_attributes(prompt=prompt.managed_prompt):
-                response = self.llm.generate(prompt.text)
+
+            # Bước 2 — LLM call: generation riêng, mang model/token/cost để biết chi phí
+            # của từng bước chứ không chỉ tổng của cả request. Prompt managed được gắn
+            # vào chính generation này nên trace nối được với prompt version trên Langfuse.
+            # Truyền đối tượng prompt của Langfuse (không truyền nội dung đã điền câu hỏi)
+            # để Langfuse biết generation này dùng prompt nào và phiên bản nào.
+            with child_observation(
+                langfuse_client,
+                as_type="generation",
+                name="generation",
+                model=self.model,
+                prompt=prompt.managed_prompt,
+            ) as generation_observation:
+                with propagate_attributes(prompt=prompt.managed_prompt):
+                    response = self.llm.generate(prompt.text)
+                # Đo latency ngay khi LLM trả xong, trước khi cập nhật trace, để
+                # con số latency không bị tính thêm chi phí instrumentation.
+                latency_ms = int((time.perf_counter() - started) * 1000)
+                cost_usd = self._estimate_cost(
+                    response.usage.input_tokens, response.usage.output_tokens
+                )
+                update_observation(
+                    generation_observation,
+                    output={"answer_preview": summarize_text(response.text)},
+                    metadata={"ttft_ms": response.ttft_ms},
+                    usage_details={
+                        "input": response.usage.input_tokens,
+                        "output": response.usage.output_tokens,
+                    },
+                    cost_details=self._estimate_cost_details(
+                        response.usage.input_tokens, response.usage.output_tokens
+                    ),
+                )
+
             quality_score = self._heuristic_quality(message, response.text, docs)
-            latency_ms = int((time.perf_counter() - started) * 1000)
-            cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
 
         metrics.record_request(
             latency_ms=latency_ms,
@@ -99,9 +150,17 @@ class LabAgent:
         )
 
     def _estimate_cost(self, tokens_in: int, tokens_out: int) -> float:
-        input_cost = (tokens_in / 1_000_000) * 3
-        output_cost = (tokens_out / 1_000_000) * 15
+        input_cost = (tokens_in / 1_000_000) * INPUT_USD_PER_MTOKEN
+        output_cost = (tokens_out / 1_000_000) * OUTPUT_USD_PER_MTOKEN
         return round(input_cost + output_cost, 6)
+
+    def _estimate_cost_details(self, tokens_in: int, tokens_out: int) -> dict[str, float]:
+        """Tách cost theo input/output để hiển thị trên generation của trace."""
+        return {
+            "input": round((tokens_in / 1_000_000) * INPUT_USD_PER_MTOKEN, 6),
+            "output": round((tokens_out / 1_000_000) * OUTPUT_USD_PER_MTOKEN, 6),
+            "total": self._estimate_cost(tokens_in, tokens_out),
+        }
 
     def _heuristic_quality(self, question: str, answer: str, docs: list[str]) -> float:
         score = 0.5
