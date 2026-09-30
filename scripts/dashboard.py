@@ -20,6 +20,7 @@ Ví dụ:
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import math
 import sys
@@ -519,7 +520,7 @@ def build_html(records: list[dict], log_path: Path, note: str = "") -> str:
         + stat("Số câu trả lời", str(len(quality_values))),
     )
 
-    note_html = f'<p class="note">{note}</p>' if note else ""
+    note_html = f'<p class="note">{html.escape(note)}</p>' if note else ""
 
     return f"""<!doctype html>
 <html lang="vi">
